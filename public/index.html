@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Total Hero Power Leaderboard — Multi-Server 8-Sheet Analytics</title>
+  <title>Total Hero Power Leaderboard — Multi-Warzone Analytics</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -87,11 +87,11 @@
               <h1 class="text-xl font-extrabold tracking-tight text-white">Total Hero Power Command Center</h1>
               <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="sourceLabel">8 Sheets Synced</span>
+                <span id="sourceLabel">8 Warzones Synced</span>
               </span>
             </div>
             <p class="text-xs text-slate-400 mt-0.5">
-              8 Sheets (#67, #147, #90, #47, #93, #85, #162, #5) &bull; 1,600 Ranked Commanders &bull; <span id="lastUpdatedText">Syncing...</span>
+              Warzones #67, #147, #90, #47, #93, #85, #162, #5 &bull; 1,600 Ranked Commanders &bull; <span id="lastUpdatedText">Syncing...</span>
             </p>
           </div>
         </div>
@@ -101,7 +101,7 @@
             <svg id="refreshIcon" class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Sync All 8 Sheets
+            Refresh Data
           </button>
           <button onclick="exportFilteredCSV()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
             <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,18 +109,12 @@
             </svg>
             Export View CSV
           </button>
-          <a href="https://docs.google.com/spreadsheets/d/1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA/edit?usp=sharing" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow-lg shadow-sky-500/20">
-            Open Google Sheet
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
         </div>
       </div>
 
-      <!-- 8-Sheet Selector Tabs Bar -->
-      <div id="sheetTabsBar" class="flex items-center gap-2 overflow-x-auto pb-1 pt-2 border-t border-white/10">
-        <!-- Populated dynamically with All 8 Sheets + Individual Sheet Tabs -->
+      <!-- 8-Warzone Selector Bar -->
+      <div id="warzoneTabsBar" class="flex items-center gap-2 overflow-x-auto pb-1 pt-2 border-t border-white/10">
+        <!-- Populated dynamically with All 8 Warzones + Individual Warzone Tabs -->
       </div>
     </div>
   </header>
@@ -130,19 +124,19 @@
     <!-- Active View Banner -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-slate-900/70 border border-white/10 rounded-xl px-4 py-3">
       <div class="flex items-center gap-2.5">
-        <span id="activeScopeBadge" class="px-2.5 py-1 rounded-md text-xs font-extrabold bg-sky-500 text-slate-950 uppercase tracking-wider">ALL 8 SHEETS</span>
+        <span id="activeScopeBadge" class="px-2.5 py-1 rounded-md text-xs font-extrabold bg-sky-500 text-slate-950 uppercase tracking-wider">ALL 8 WARZONES</span>
         <span id="activeScopeDescription" class="text-xs sm:text-sm text-slate-300 font-medium">
-          Viewing combined analytics across all 8 sheets (1,600 commanders)
+          Viewing combined analytics across all 8 Warzones (1,600 commanders)
         </span>
       </div>
-      <span class="text-xs text-slate-400">Tip: Click any Sheet tab above or row in the Sheet Comparison table to drill into a specific sheet</span>
+      <span class="text-xs text-slate-400">Tip: Click any Warzone button above or row in the Warzone Comparison table to filter</span>
     </div>
 
     <!-- KPI Summary Cards -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Hero Power</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Power (Top 200 THP)</span>
           <span class="p-2 rounded-lg bg-sky-500/10 text-sky-400">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -168,7 +162,7 @@
 
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span id="kpiThirdTitle" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Strongest Sheet / Alliance</span>
+          <span id="kpiThirdTitle" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Strongest Warzone / Alliance</span>
           <span class="p-2 rounded-lg bg-purple-500/10 text-purple-400">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -193,68 +187,68 @@
       </div>
     </section>
 
-    <!-- 8-Sheet Head-to-Head Comparison Section (Always visible for quick cross-sheet insights) -->
+    <!-- All 8 Warzones Head-to-Head Comparison Section -->
     <section class="glass-card rounded-2xl p-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
         <div>
           <h2 class="text-base font-bold text-white flex items-center gap-2">
-            All 8 Sheets Head-to-Head Comparison
-            <span class="px-2 py-0.5 text-[11px] font-mono rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">8 Servers</span>
+            All 8 Warzones Head-to-Head Comparison
+            <span class="px-2 py-0.5 text-[11px] font-mono rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">8 Warzones</span>
           </h2>
-          <p class="text-xs text-slate-400">Comparing total Top-200 power, rank curves, #1 apex commanders, and Rank #200 cutoffs across every sheet</p>
+          <p class="text-xs text-slate-400">Comparing Total Power (Top 200 THP), Rank 1 to 200 Power curves, and Top 3 Dominant Alliances across every Warzone</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-        <!-- Total & Average Power by Sheet Bar Chart -->
+        <!-- Total Power (Top 200 THP) by Warzone Bar Chart -->
         <div class="lg:col-span-6 bg-slate-900/50 rounded-xl p-4 border border-white/5">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Total Power &amp; #1 Peak by Sheet</h3>
-            <span class="text-[11px] text-slate-400">Click bar to select sheet</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Total Power (Top 200 THP)</h3>
+            <span class="text-[11px] text-slate-400">Click bar to select Warzone</span>
           </div>
           <div class="relative h-64">
-            <canvas id="sheetsComparisonChart"></canvas>
+            <canvas id="warzonesComparisonChart"></canvas>
           </div>
         </div>
 
-        <!-- Multi-Line Rank 1-200 Power Curves Across All 8 Sheets -->
+        <!-- Multi-Line Rank 1 to 200 Power Curves Across All 8 Warzones -->
         <div class="lg:col-span-6 bg-slate-900/50 rounded-xl p-4 border border-white/5">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Rank #1 &rarr; #200 Power Curves (All 8 Sheets)</h3>
-            <span class="text-[11px] text-slate-400">Server Depth Comparison</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Rank 1 to 200 Power Curves</h3>
+            <span class="text-[11px] text-slate-400">Warzone Depth Comparison</span>
           </div>
           <div class="relative h-64">
-            <canvas id="multiSheetCurveChart"></canvas>
+            <canvas id="multiWarzoneCurveChart"></canvas>
           </div>
         </div>
       </div>
 
-      <!-- 8-Sheet Summary Matrix Table -->
+      <!-- 8-Warzone Summary Matrix Table -->
       <div class="overflow-x-auto rounded-xl border border-white/10">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-slate-900/90 border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              <th class="py-3 px-4">Sheet / Server</th>
-              <th class="py-3 px-4 text-right">Total Top 200 Power</th>
+              <th class="py-3 px-4">Warzone</th>
+              <th class="py-3 px-4 text-right">Total Power (Top 200 THP)</th>
               <th class="py-3 px-4 text-right">Average Power</th>
               <th class="py-3 px-4 text-right">Rank #200 Cutoff</th>
               <th class="py-3 px-4">#1 Commander</th>
               <th class="py-3 px-4 text-right">#1 Hero Power</th>
-              <th class="py-3 px-4">Dominant Alliance</th>
+              <th class="py-3 px-4">Top 3 Dominant Alliances</th>
             </tr>
           </thead>
-          <tbody id="sheetsSummaryTableBody" class="divide-y divide-white/5 text-sm">
+          <tbody id="warzonesSummaryTableBody" class="divide-y divide-white/5 text-sm">
             <!-- Populated dynamically -->
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Top 3 Podium Cards (Context-aware: Global Top 3 or Active Sheet Top 3) -->
+    <!-- Simple Top 3 Podium Cards -->
     <section>
       <div class="flex items-center justify-between mb-3">
-        <h2 id="podiumSectionTitle" class="text-sm font-bold uppercase tracking-wider text-slate-400">Leaderboard Podium (Top 3 Commanders)</h2>
-        <span class="text-xs text-slate-400">Click any alliance or sheet badge to filter</span>
+        <h2 id="podiumSectionTitle" class="text-sm font-bold uppercase tracking-wider text-slate-400">Overall Cross-Server Podium</h2>
+        <span class="text-xs text-slate-400">Click any Alliance or Warzone badge to filter</span>
       </div>
       <div id="podiumContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Populated dynamically -->
@@ -268,7 +262,7 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <h3 class="text-base font-bold text-white">Alliance Power Share</h3>
-            <span id="allianceChartScopeLabel" class="text-xs text-sky-400 font-semibold">All 8 Sheets</span>
+            <span id="allianceChartScopeLabel" class="text-xs text-sky-400 font-semibold">All 8 Warzones</span>
           </div>
           <p class="text-xs text-slate-400 mb-4">Top alliances ranked by combined Hero Power (click slice to filter)</p>
         </div>
@@ -281,7 +275,7 @@
       <div class="glass-card rounded-2xl p-6 lg:col-span-7">
         <div class="flex items-center justify-between mb-1">
           <h3 id="top15ChartTitle" class="text-base font-bold text-white">Top 15 Commanders</h3>
-          <span class="text-xs text-slate-400">Color-coded by Sheet / Alliance</span>
+          <span class="text-xs text-slate-400">Color-coded by Warzone</span>
         </div>
         <p class="text-xs text-slate-400 mb-4">Highest Total Hero Power commanders in the selected view</p>
         <div class="relative h-72">
@@ -306,7 +300,7 @@
           <thead class="sticky top-0 bg-slate-900/95 backdrop-blur">
             <tr class="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               <th class="py-3 px-4">Alliance</th>
-              <th class="py-3 px-4">Sheet(s)</th>
+              <th class="py-3 px-4">Warzone(s)</th>
               <th class="py-3 px-4 text-right">Ranked Members</th>
               <th class="py-3 px-4 text-right">Power Share</th>
               <th class="py-3 px-4 text-right">Total Hero Power</th>
@@ -329,7 +323,7 @@
             Commander Leaderboard Explorer
             <span id="filteredCountBadge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">--</span>
           </h3>
-          <p class="text-xs text-slate-400">Search across all 1,600 commanders or filter by specific Sheet, Alliance, or Power Tier</p>
+          <p class="text-xs text-slate-400">Search across all 1,600 commanders or filter by specific Warzone, Alliance, or Power Tier</p>
         </div>
 
         <!-- Filters -->
@@ -364,11 +358,11 @@
             class="px-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
           >
             <option value="ALL">All Power Tiers</option>
-            <option value="400">400M+ (Mythic Whales)</option>
-            <option value="300">300M+ (Apex Whales)</option>
-            <option value="250">250M+ (Elite)</option>
-            <option value="200">200M+ (Vanguard)</option>
-            <option value="UNDER200">&lt; 200M (Core)</option>
+            <option value="400">400M+ THP</option>
+            <option value="300">300M+ THP</option>
+            <option value="250">250M+ THP</option>
+            <option value="200">200M+ THP</option>
+            <option value="UNDER200">&lt; 200M THP</option>
           </select>
 
           <!-- Sort Order -->
@@ -379,7 +373,7 @@
           >
             <option value="power_desc">Power: High &rarr; Low</option>
             <option value="power_asc">Power: Low &rarr; High</option>
-            <option value="sheet_rank_asc">Sheet Rank: #1 &rarr; #200</option>
+            <option value="wz_rank_asc">Warzone Rank: #1 &rarr; #200</option>
             <option value="name_asc">Commander: A &rarr; Z</option>
             <option value="alliance_asc">Alliance: A &rarr; Z</option>
           </select>
@@ -395,12 +389,12 @@
           <thead class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
             <tr class="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               <th class="py-3.5 px-4 w-24">Global #</th>
-              <th class="py-3.5 px-4 w-28">Sheet (#Rank)</th>
+              <th class="py-3.5 px-4 w-36">Warzone (Rank)</th>
               <th class="py-3.5 px-4">Commander Name</th>
               <th class="py-3.5 px-4">Alliance</th>
               <th class="py-3.5 px-4 text-right">Total Hero Power</th>
               <th class="py-3.5 px-4 w-48 hidden md:table-cell">Relative Power</th>
-              <th class="py-3.5 px-4 text-right hidden sm:table-cell">vs. Sheet Avg</th>
+              <th class="py-3.5 px-4 text-right hidden sm:table-cell">vs. Warzone Avg</th>
             </tr>
           </thead>
           <tbody id="leaderboardTableBody" class="divide-y divide-white/5 text-sm">
@@ -412,7 +406,7 @@
   </main>
 
   <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-xs text-slate-500 border-t border-white/5 mt-8">
-    Connected to all 8 tabs in Google Spreadsheet <code class="text-slate-400">1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA</code> &bull; Ready for Render Cloud Hosting
+    Multi-Warzone Total Hero Power Leaderboard &bull; Warzones #67, #147, #90, #47, #93, #85, #162, #5
   </footer>
 
   <script src="/app.js"></script>

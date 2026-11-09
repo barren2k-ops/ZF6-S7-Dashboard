@@ -1,4 +1,4 @@
-const SHEET_COLORS = {
+const WARZONE_COLORS = {
   '67':  { bg: 'rgba(56, 189, 248, 0.85)',  border: '#38bdf8', badge: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
   '147': { bg: 'rgba(244, 63, 94, 0.85)',   border: '#f43f5e', badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
   '90':  { bg: 'rgba(168, 85, 247, 0.85)',  border: '#a855f7', badge: 'bg-purple-500/15 text-purple-300 border-purple-500/30' },
@@ -22,8 +22,8 @@ const PALETTE_LIST = [
   { bg: 'rgba(148, 163, 184, 0.75)', border: '#94a3b8', badge: 'bg-slate-500/15 text-slate-300 border-slate-500/30' }
 ];
 
-function getSheetStyle(sheetName) {
-  return SHEET_COLORS[sheetName] || PALETTE_LIST[0];
+function getWarzoneStyle(wzName) {
+  return WARZONE_COLORS[wzName] || PALETTE_LIST[0];
 }
 
 function getAllianceStyle(alliance) {
@@ -34,20 +34,20 @@ function getAllianceStyle(alliance) {
   return PALETTE_LIST[Math.abs(hash)];
 }
 
-let sheetsMeta = [];
-let sheetsDataMap = {};
-let sheetStatsList = [];
-let sheetStatsByName = {};
+let warzonesMeta = [];
+let warzonesDataMap = {};
+let warzoneStatsList = [];
+let warzoneStatsByName = {};
 
 let globalAllRows = [];
 let currentScopeRows = [];
 let filteredRows = [];
 let allianceStats = [];
 
-let activeSheet = 'ALL'; // 'ALL' or '67', '147', '90', '47', '93', '85', '162', '5'
+let activeWarzone = 'ALL'; // 'ALL' or '67', '147', '90', '47', '93', '85', '162', '5'
 let activeAlliance = 'ALL';
 
-let sheetsCompChartInstance = null;
+let wzCompChartInstance = null;
 let multiCurveChartInstance = null;
 let shareChartInstance = null;
 let topCommandersChartInstance = null;
@@ -71,40 +71,45 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function computeAllSheetsSummary() {
+function computeAllWarzonesSummary() {
   globalAllRows = [];
-  sheetStatsList = [];
+  warzoneStatsList = [];
 
-  sheetsMeta.forEach(meta => {
-    const rows = sheetsDataMap[meta.name] || [];
+  warzonesMeta.forEach(meta => {
+    const rows = warzonesDataMap[meta.name] || [];
     const totalPower = rows.reduce((s, r) => s + r.power, 0);
     const avgPower = rows.length ? totalPower / rows.length : 0;
     const topCmd = rows[0] || { commander: '-', alliance: '-', power: 0 };
     const floorCmd = rows[rows.length - 1] || { power: 0 };
 
-    // Find top alliance in this sheet
+    // Calculate alliances in this Warzone
     const aCount = {};
     const aPower = {};
     rows.forEach(r => {
       aCount[r.alliance] = (aCount[r.alliance] || 0) + 1;
       aPower[r.alliance] = (aPower[r.alliance] || 0) + r.power;
-      globalAllRows.push({ ...r });
+      globalAllRows.push({
+        ...r,
+        warzone: r.sheet,
+        wzRank: r.sheetRank
+      });
     });
 
-    let domAlliance = '-';
-    let domPower = 0;
-    let domMembers = 0;
-    Object.keys(aPower).forEach(a => {
-      if (aPower[a] > domPower) {
-        domPower = aPower[a];
-        domAlliance = a;
-        domMembers = aCount[a];
-      }
-    });
+    const wzAlliances = Object.keys(aPower)
+      .map(a => ({
+        alliance: a,
+        power: aPower[a],
+        members: aCount[a],
+        sharePct: totalPower > 0 ? (aPower[a] / totalPower) * 100 : 0
+      }))
+      .sort((a, b) => b.power - a.power);
+
+    const top3Alliances = wzAlliances.slice(0, 3);
+    const dom = top3Alliances[0] || { alliance: '-', members: 0, sharePct: 0, power: 0 };
 
     const stat = {
       name: meta.name,
-      label: `Sheet #${meta.name}`,
+      label: `Warzone #${meta.name}`,
       rowCount: rows.length,
       totalPower,
       avgPower,
@@ -112,12 +117,13 @@ function computeAllSheetsSummary() {
       topCommander: topCmd.commander,
       topCommanderAlliance: topCmd.alliance,
       topPower: topCmd.power,
-      domAlliance,
-      domMembers,
-      domSharePct: totalPower > 0 ? (domPower / totalPower) * 100 : 0
+      top3Alliances,
+      domAlliance: dom.alliance,
+      domMembers: dom.members,
+      domSharePct: dom.sharePct
     };
-    sheetStatsList.push(stat);
-    sheetStatsByName[meta.name] = stat;
+    warzoneStatsList.push(stat);
+    warzoneStatsByName[meta.name] = stat;
   });
 
   // Sort global rows by power descending and assign globalRank
@@ -128,10 +134,10 @@ function computeAllSheetsSummary() {
 }
 
 function computeScopeData() {
-  if (activeSheet === 'ALL') {
+  if (activeWarzone === 'ALL') {
     currentScopeRows = [...globalAllRows];
   } else {
-    currentScopeRows = globalAllRows.filter(r => r.sheet === activeSheet);
+    currentScopeRows = globalAllRows.filter(r => r.warzone === activeWarzone);
   }
 
   const byAlliance = {};
@@ -139,35 +145,34 @@ function computeScopeData() {
 
   currentScopeRows.forEach(r => {
     scopeTotalPower += r.power;
-    // Key by alliance + sheet if ALL, or by alliance name
     const key = r.alliance;
     if (!byAlliance[key]) {
       byAlliance[key] = {
         alliance: r.alliance,
-        sheets: new Set(),
+        warzones: new Set(),
         members: 0,
         totalPower: 0,
         topCommander: r.commander,
         topPower: r.power,
-        topSheet: r.sheet,
-        topSheetRank: r.sheetRank
+        topWarzone: r.warzone,
+        topWzRank: r.wzRank
       };
     }
     const g = byAlliance[key];
-    g.sheets.add(r.sheet);
+    g.warzones.add(r.warzone);
     g.members += 1;
     g.totalPower += r.power;
     if (r.power > g.topPower) {
       g.topPower = r.power;
       g.topCommander = r.commander;
-      g.topSheet = r.sheet;
-      g.topSheetRank = r.sheetRank;
+      g.topWarzone = r.warzone;
+      g.topWzRank = r.wzRank;
     }
   });
 
   allianceStats = Object.values(byAlliance).map(g => ({
     ...g,
-    sheetsList: Array.from(g.sheets),
+    warzonesList: Array.from(g.warzones),
     avgPower: g.totalPower / g.members,
     sharePct: scopeTotalPower > 0 ? (g.totalPower / scopeTotalPower) * 100 : 0
   }));
@@ -175,30 +180,30 @@ function computeScopeData() {
   allianceStats.sort((a, b) => b.totalPower - a.totalPower);
 }
 
-function renderSheetTabsBar() {
-  const bar = document.getElementById('sheetTabsBar');
-  const isAll = activeSheet === 'ALL';
+function renderWarzoneTabsBar() {
+  const bar = document.getElementById('warzoneTabsBar');
+  const isAll = activeWarzone === 'ALL';
 
   const allTabBtn = `
     <button
-      onclick="selectSheet('ALL')"
+      onclick="selectWarzone('ALL')"
       class="px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 border ${
         isAll
           ? 'bg-sky-500 text-slate-950 border-sky-400 shadow-lg shadow-sky-500/20'
           : 'bg-slate-900/90 text-slate-300 border-white/10 hover:bg-slate-800'
       }"
     >
-      <span>🌐 All 8 Sheets</span>
+      <span>🌐 All 8 Warzones</span>
       <span class="px-1.5 py-0.5 rounded text-[10px] font-mono ${isAll ? 'bg-slate-950/20 text-slate-950' : 'bg-white/10 text-slate-300'}">${globalAllRows.length}</span>
     </button>
   `;
 
-  const sheetButtons = sheetStatsList.map(st => {
-    const isAct = activeSheet === st.name;
-    const style = getSheetStyle(st.name);
+  const wzButtons = warzoneStatsList.map(st => {
+    const isAct = activeWarzone === st.name;
+    const style = getWarzoneStyle(st.name);
     return `
       <button
-        onclick="selectSheet('${st.name}')"
+        onclick="selectWarzone('${st.name}')"
         class="px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 border ${
           isAct
             ? 'ring-2 ring-white ' + style.badge
@@ -206,36 +211,52 @@ function renderSheetTabsBar() {
         }"
       >
         <span class="w-2 h-2 rounded-full" style="background: ${style.border}"></span>
-        <span>Sheet #${st.name}</span>
+        <span>Warzone #${st.name}</span>
         <span class="text-[10px] font-mono opacity-75">(${formatCompact(st.totalPower)})</span>
       </button>
     `;
   }).join('');
 
-  bar.innerHTML = allTabBtn + sheetButtons;
+  bar.innerHTML = allTabBtn + wzButtons;
 
-  // Update active scope banner
   const badge = document.getElementById('activeScopeBadge');
   const desc = document.getElementById('activeScopeDescription');
-  if (activeSheet === 'ALL') {
-    badge.textContent = 'ALL 8 SHEETS';
-    desc.textContent = `Viewing combined analytics across all 8 sheets (${formatNumber(globalAllRows.length)} commanders • 331.7B combined power)`;
+  if (activeWarzone === 'ALL') {
+    badge.textContent = 'ALL 8 WARZONES';
+    desc.textContent = `Viewing combined analytics across all 8 Warzones (${formatNumber(globalAllRows.length)} commanders • 331.7B combined THP)`;
   } else {
-    const st = sheetStatsByName[activeSheet];
-    badge.textContent = `SHEET #${activeSheet}`;
-    desc.textContent = `Viewing Sheet #${activeSheet} Leaderboard (${st.rowCount} commanders • #1 ${st.topCommander} [${st.topCommanderAlliance}] • Top Alliance: ${st.domAlliance})`;
+    const st = warzoneStatsByName[activeWarzone];
+    const top3Names = st.top3Alliances.map(a => a.alliance).join(', ');
+    badge.textContent = `WARZONE #${activeWarzone}`;
+    desc.textContent = `Viewing Warzone #${activeWarzone} Leaderboard (${st.rowCount} commanders • #1 ${st.topCommander} [${st.topCommanderAlliance}] • Top Alliances: ${top3Names})`;
   }
 }
 
-function selectSheet(sheetName) {
-  activeSheet = sheetName;
+function selectWarzone(wzName) {
+  activeWarzone = wzName;
   activeAlliance = 'ALL';
   document.getElementById('clearAllianceFilterBtn').classList.add('hidden');
 
   computeScopeData();
-  renderSheetTabsBar();
+  renderWarzoneTabsBar();
   renderKPIs();
-  renderSheetsSummaryTable();
+  renderWarzonesSummaryTable();
+  renderPodium();
+  renderAllianceTable();
+  renderFilterControls();
+  applyFilters();
+  renderScopeCharts();
+}
+
+function selectWarzoneAndAlliance(wzName, allianceName) {
+  activeWarzone = wzName;
+  activeAlliance = allianceName;
+  document.getElementById('clearAllianceFilterBtn').classList.remove('hidden');
+
+  computeScopeData();
+  renderWarzoneTabsBar();
+  renderKPIs();
+  renderWarzonesSummaryTable();
   renderPodium();
   renderAllianceTable();
   renderFilterControls();
@@ -254,100 +275,108 @@ function renderKPIs() {
 
   document.getElementById('kpiTotalPower').textContent = formatCompact(totalPower);
   document.getElementById('kpiTotalPowerSub').textContent =
-    activeSheet === 'ALL'
-      ? `${formatNumber(totalPower)} across all 8 sheets (1,600 commanders)`
-      : `${formatNumber(totalPower)} across 200 commanders in Sheet #${activeSheet}`;
+    activeWarzone === 'ALL'
+      ? `${formatNumber(totalPower)} across all 8 Warzones (1,600 commanders)`
+      : `${formatNumber(totalPower)} across Top 200 in Warzone #${activeWarzone}`;
 
   document.getElementById('kpiTopCommander').textContent = top.commander;
   document.getElementById('kpiTopCommanderSub').textContent =
-    `[${top.alliance} • Sheet #${top.sheet}] ${formatNumber(top.power)}`;
+    `[${top.alliance} • Warzone #${top.warzone}] ${formatNumber(top.power)}`;
 
-  if (activeSheet === 'ALL') {
-    const strongestSheet = [...sheetStatsList].sort((a, b) => b.totalPower - a.totalPower)[0];
-    document.getElementById('kpiThirdTitle').textContent = '#1 Strongest Sheet';
-    document.getElementById('kpiTopAlliance').textContent = `Sheet #${strongestSheet.name} (${formatCompact(strongestSheet.totalPower)})`;
-    document.getElementById('kpiTopAllianceSub').textContent = `Avg ${formatCompact(strongestSheet.avgPower)} • Led by ${strongestSheet.domAlliance} (${strongestSheet.domMembers})`;
+  if (activeWarzone === 'ALL') {
+    const strongestWz = [...warzoneStatsList].sort((a, b) => b.totalPower - a.totalPower)[0];
+    const top3Str = strongestWz.top3Alliances.map(a => a.alliance).join(', ');
+    document.getElementById('kpiThirdTitle').textContent = '#1 Strongest Warzone';
+    document.getElementById('kpiTopAlliance').textContent = `Warzone #${strongestWz.name} (${formatCompact(strongestWz.totalPower)})`;
+    document.getElementById('kpiTopAllianceSub').textContent = `Avg ${formatCompact(strongestWz.avgPower)} • Top 3: ${top3Str}`;
   } else {
-    const topA = allianceStats[0];
-    document.getElementById('kpiThirdTitle').textContent = `Dominant Alliance (#${activeSheet})`;
-    document.getElementById('kpiTopAlliance').textContent = `${topA.alliance} (${topA.members} members)`;
-    document.getElementById('kpiTopAllianceSub').textContent = `${topA.sharePct.toFixed(1)}% of Sheet #${activeSheet} Power (${formatCompact(topA.totalPower)})`;
+    const st = warzoneStatsByName[activeWarzone];
+    const top3Str = st.top3Alliances.map(a => `${a.alliance} (${a.members})`).join(' • ');
+    document.getElementById('kpiThirdTitle').textContent = `Dominant Alliances (Warzone #${activeWarzone})`;
+    document.getElementById('kpiTopAlliance').textContent = st.top3Alliances.map(a => a.alliance).join(' / ');
+    document.getElementById('kpiTopAllianceSub').textContent = top3Str;
   }
 
   document.getElementById('kpiAvgPower').textContent = formatCompact(avgPower);
   document.getElementById('kpiMinPowerSub').textContent =
-    `Lowest Cutoff: ${formatCompact(floor.power)} (Sheet #${floor.sheet})`;
+    `Rank #200 Cutoff: ${formatCompact(floor.power)} (Warzone #${floor.warzone})`;
 }
 
-function renderSheetsSummaryTable() {
-  const tbody = document.getElementById('sheetsSummaryTableBody');
-  const sortedSheets = [...sheetStatsList].sort((a, b) => b.totalPower - a.totalPower);
+function renderWarzonesSummaryTable() {
+  const tbody = document.getElementById('warzonesSummaryTableBody');
+  const sortedWarzones = [...warzoneStatsList].sort((a, b) => b.totalPower - a.totalPower);
 
-  tbody.innerHTML = sortedSheets.map((st, idx) => {
-    const style = getSheetStyle(st.name);
-    const isSelected = activeSheet === st.name;
+  tbody.innerHTML = sortedWarzones.map((st, idx) => {
+    const style = getWarzoneStyle(st.name);
+    const isSelected = activeWarzone === st.name;
+
+    const top3Html = st.top3Alliances.map((al, aIdx) => {
+      const alStyle = getAllianceStyle(al.alliance);
+      const rankNum = aIdx + 1;
+      return `
+        <button
+          onclick="event.stopPropagation(); selectWarzoneAndAlliance('${escapeHtml(st.name)}', '${escapeHtml(al.alliance)}')"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${alStyle.badge} hover:ring-1 hover:ring-white transition cursor-pointer mr-1 mb-1"
+          title="Filter by Warzone #${escapeHtml(st.name)} - ${escapeHtml(al.alliance)} (${formatCompact(al.power)})"
+        >
+          <span class="opacity-70 font-mono text-[10px]">#${rankNum}</span>
+          <span class="font-bold">${escapeHtml(al.alliance)}</span>
+          <span class="opacity-80 font-mono text-[10px]">(${al.members} • ${al.sharePct.toFixed(0)}%)</span>
+        </button>
+      `;
+    }).join('');
+
     return `
       <tr
-        onclick="selectSheet('${st.name}')"
+        onclick="selectWarzone('${st.name}')"
         class="hover:bg-white/[0.06] transition cursor-pointer ${isSelected ? 'bg-sky-500/10 ring-1 ring-inset ring-sky-500/40' : ''}"
       >
-        <td class="py-3 px-4 font-bold">
+        <td class="py-3 px-4 font-bold whitespace-nowrap">
           <div class="flex items-center gap-2">
             <span class="text-xs font-mono text-slate-500 w-5">#${idx + 1}</span>
             <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${style.badge}">
-              Sheet #${st.name}
+              Warzone #${st.name}
             </span>
           </div>
         </td>
-        <td class="py-3 px-4 text-right font-mono font-bold text-white">${formatNumber(st.totalPower)} <span class="text-xs text-slate-400">(${formatCompact(st.totalPower)})</span></td>
-        <td class="py-3 px-4 text-right font-mono text-emerald-400 font-semibold">${formatNumber(st.avgPower)}</td>
-        <td class="py-3 px-4 text-right font-mono text-slate-300">${formatNumber(st.floorPower)}</td>
-        <td class="py-3 px-4 font-semibold text-amber-300">
+        <td class="py-3 px-4 text-right font-mono font-bold text-white whitespace-nowrap">
+          ${formatNumber(st.totalPower)} <span class="text-xs text-slate-400">(${formatCompact(st.totalPower)})</span>
+        </td>
+        <td class="py-3 px-4 text-right font-mono text-emerald-400 font-semibold whitespace-nowrap">${formatNumber(st.avgPower)}</td>
+        <td class="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">${formatNumber(st.floorPower)}</td>
+        <td class="py-3 px-4 font-semibold text-amber-300 whitespace-nowrap">
           ${escapeHtml(st.topCommander)}
           <span class="text-xs text-slate-400 font-normal ml-1">[${escapeHtml(st.topCommanderAlliance)}]</span>
         </td>
-        <td class="py-3 px-4 text-right font-mono font-bold text-amber-400">${formatNumber(st.topPower)}</td>
-        <td class="py-3 px-4 text-xs text-slate-300">
-          <span class="font-bold text-white">${escapeHtml(st.domAlliance)}</span>
-          <span class="text-slate-400 ml-1">(${st.domMembers} members • ${st.domSharePct.toFixed(1)}%)</span>
+        <td class="py-3 px-4 text-right font-mono font-bold text-amber-400 whitespace-nowrap">${formatNumber(st.topPower)}</td>
+        <td class="py-2.5 px-4">
+          <div class="flex flex-wrap items-center">${top3Html}</div>
         </td>
       </tr>
     `;
   }).join('');
 }
 
-function renderCrossSheetCharts() {
+function renderCrossWarzoneCharts() {
   Chart.defaults.color = '#94a3b8';
   Chart.defaults.font.family = "'Inter', sans-serif";
 
-  const sortedSheets = [...sheetStatsList].sort((a, b) => b.totalPower - a.totalPower);
+  const sortedWarzones = [...warzoneStatsList].sort((a, b) => b.totalPower - a.totalPower);
 
-  // 1. Total Power & #1 Peak by Sheet
-  const compCtx = document.getElementById('sheetsComparisonChart').getContext('2d');
-  if (sheetsCompChartInstance) sheetsCompChartInstance.destroy();
+  // 1. Total Power (Top 200 THP) by Warzone
+  const compCtx = document.getElementById('warzonesComparisonChart').getContext('2d');
+  if (wzCompChartInstance) wzCompChartInstance.destroy();
 
-  sheetsCompChartInstance = new Chart(compCtx, {
+  wzCompChartInstance = new Chart(compCtx, {
     type: 'bar',
     data: {
-      labels: sortedSheets.map(s => `Sheet #${s.name}`),
+      labels: sortedWarzones.map(s => `Warzone #${s.name}`),
       datasets: [
         {
-          label: 'Total Top-200 Power (Billions)',
-          data: sortedSheets.map(s => +(s.totalPower / 1e9).toFixed(2)),
-          backgroundColor: sortedSheets.map(s => getSheetStyle(s.name).bg),
-          borderRadius: 6,
-          yAxisID: 'yTotal'
-        },
-        {
-          label: '#1 Commander Power (Millions)',
-          data: sortedSheets.map(s => +(s.topPower / 1e6).toFixed(1)),
-          type: 'line',
-          borderColor: '#facc15',
-          backgroundColor: '#facc15',
-          borderWidth: 2.5,
-          pointRadius: 4,
-          tension: 0.25,
-          yAxisID: 'yPeak'
+          label: 'Total Power (Top 200 THP in Billions)',
+          data: sortedWarzones.map(s => +(s.totalPower / 1e9).toFixed(2)),
+          backgroundColor: sortedWarzones.map(s => getWarzoneStyle(s.name).bg),
+          borderRadius: 6
         }
       ]
     },
@@ -356,46 +385,47 @@ function renderCrossSheetCharts() {
       maintainAspectRatio: false,
       onClick: (_, elements) => {
         if (elements.length > 0) {
-          const sheetName = sortedSheets[elements[0].index].name;
-          selectSheet(sheetName);
+          const wzName = sortedWarzones[elements[0].index].name;
+          selectWarzone(wzName);
         }
       },
       scales: {
         x: { grid: { display: false } },
-        yTotal: {
-          type: 'linear',
-          position: 'left',
-          title: { display: true, text: 'Total Power (B)', font: { size: 10 } },
+        y: {
+          beginAtZero: false,
+          min: 25,
+          title: { display: true, text: 'Total Power (Top 200 THP)', font: { size: 11 } },
           grid: { color: 'rgba(255,255,255,0.05)' },
           ticks: { callback: v => v + 'B' }
-        },
-        yPeak: {
-          type: 'linear',
-          position: 'right',
-          title: { display: true, text: '#1 Peak (M)', font: { size: 10 } },
-          grid: { drawOnChartArea: false },
-          ticks: { callback: v => v + 'M' }
         }
       },
       plugins: {
-        legend: { labels: { boxWidth: 12, font: { size: 11 } } }
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const st = sortedWarzones[ctx.dataIndex];
+              return ` Total Power (Top 200 THP): ${formatNumber(st.totalPower)} (${formatCompact(st.totalPower)})`;
+            }
+          }
+        }
       }
     }
   });
 
-  // 2. Multi-Line Rank 1 to 200 Power Curves across all 8 sheets
-  const curveCtx = document.getElementById('multiSheetCurveChart').getContext('2d');
+  // 2. Multi-Line Rank 1 to 200 Power Curves across all 8 Warzones
+  const curveCtx = document.getElementById('multiWarzoneCurveChart').getContext('2d');
   if (multiCurveChartInstance) multiCurveChartInstance.destroy();
 
   const sampleRanks = [];
   for (let r = 1; r <= 200; r += 3) sampleRanks.push(r);
   if (sampleRanks[sampleRanks.length - 1] !== 200) sampleRanks.push(200);
 
-  const datasets = sortedSheets.map(st => {
-    const rows = sheetsDataMap[st.name] || [];
-    const style = getSheetStyle(st.name);
+  const datasets = sortedWarzones.map(st => {
+    const rows = warzonesDataMap[st.name] || [];
+    const style = getWarzoneStyle(st.name);
     return {
-      label: `#${st.name}`,
+      label: `Warzone #${st.name}`,
       data: sampleRanks.map(rk => {
         const row = rows[rk - 1];
         return row ? +(row.power / 1e6).toFixed(2) : null;
@@ -443,28 +473,28 @@ function renderPodium() {
   const container = document.getElementById('podiumContainer');
   const titleEl = document.getElementById('podiumSectionTitle');
   titleEl.textContent =
-    activeSheet === 'ALL'
-      ? 'Overall Cross-Server Podium (Top 3 Across All 8 Sheets)'
-      : `Sheet #${activeSheet} Podium (Top 3 Commanders)`;
+    activeWarzone === 'ALL'
+      ? 'Overall Cross-Server Podium'
+      : `Warzone #${activeWarzone} Podium`;
 
   const top3 = [...currentScopeRows].sort((a, b) => b.power - a.power).slice(0, 3);
   const medals = [
-    { cls: 'podium-1', label: '1st Place • Apex Sovereign', icon: '👑', textCls: 'text-amber-300' },
-    { cls: 'podium-2', label: '2nd Place • Grand Vanguard', icon: '🥈', textCls: 'text-slate-200' },
-    { cls: 'podium-3', label: '3rd Place • High Warlord', icon: '🥉', textCls: 'text-orange-300' }
+    { cls: 'podium-1', label: '#1 — 1st Place', icon: '🥇', textCls: 'text-amber-300' },
+    { cls: 'podium-2', label: '#2 — 2nd Place', icon: '🥈', textCls: 'text-slate-200' },
+    { cls: 'podium-3', label: '#3 — 3rd Place', icon: '🥉', textCls: 'text-orange-300' }
   ];
 
   container.innerHTML = top3.map((r, idx) => {
     const m = medals[idx];
-    const sheetStyle = getSheetStyle(r.sheet);
+    const wzStyle = getWarzoneStyle(r.warzone);
     const pctOfFirst = ((r.power / top3[0].power) * 100).toFixed(1);
     return `
       <div class="${m.cls} rounded-2xl p-5 flex flex-col justify-between transition transform hover:-translate-y-0.5">
         <div class="flex items-center justify-between gap-2">
           <span class="text-xs font-bold uppercase tracking-wider ${m.textCls}">${m.icon} ${m.label}</span>
           <div class="flex items-center gap-1.5">
-            <button onclick="selectSheet('${escapeHtml(r.sheet)}')" class="px-2 py-0.5 text-[11px] font-bold rounded-full border ${sheetStyle.badge} cursor-pointer">
-              Sheet #${escapeHtml(r.sheet)}
+            <button onclick="selectWarzone('${escapeHtml(r.warzone)}')" class="px-2 py-0.5 text-[11px] font-bold rounded-full border ${wzStyle.badge} cursor-pointer">
+              Warzone #${escapeHtml(r.warzone)}
             </button>
             <button onclick="setAllianceFilter('${escapeHtml(r.alliance)}')" class="px-2 py-0.5 text-[11px] font-bold rounded-full border bg-white/10 text-white border-white/20 cursor-pointer">
               ${escapeHtml(r.alliance)}
@@ -476,7 +506,7 @@ function renderPodium() {
           <div class="text-2xl font-mono font-extrabold ${m.textCls} mt-1">${formatNumber(r.power)}</div>
         </div>
         <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/10">
-          <span>Sheet #${r.sheet} Rank #${r.sheetRank} (Global #${r.globalRank})</span>
+          <span>Warzone #${r.warzone} Rank #${r.wzRank} (Global #${r.globalRank})</span>
           <span class="font-mono">${pctOfFirst}% of #1</span>
         </div>
       </div>
@@ -485,12 +515,12 @@ function renderPodium() {
 }
 
 function renderScopeCharts() {
-  const scopeLabel = activeSheet === 'ALL' ? 'All 8 Sheets (Top 12 Alliances)' : `Sheet #${activeSheet}`;
+  const scopeLabel = activeWarzone === 'ALL' ? 'All 8 Warzones (Top 12 Alliances)' : `Warzone #${activeWarzone}`;
   document.getElementById('allianceChartScopeLabel').textContent = scopeLabel;
   document.getElementById('top15ChartTitle').textContent =
-    activeSheet === 'ALL' ? 'Top 15 Commanders Across All 8 Sheets' : `Top 15 Commanders in Sheet #${activeSheet}`;
+    activeWarzone === 'ALL' ? 'Top 15 Commanders Across All 8 Warzones' : `Top 15 Commanders in Warzone #${activeWarzone}`;
 
-  // 1. Alliance Share Doughnut (Top 12 alliances + Others)
+  // 1. Alliance Share Doughnut (Top 12 alliances)
   const shareCtx = document.getElementById('allianceShareChart').getContext('2d');
   if (shareChartInstance) shareChartInstance.destroy();
 
@@ -542,11 +572,11 @@ function renderScopeCharts() {
   topCommandersChartInstance = new Chart(topCtx, {
     type: 'bar',
     data: {
-      labels: top15.map(r => `${r.commander} [${r.alliance} • #${r.sheet}]`),
+      labels: top15.map(r => `${r.commander} [${r.alliance} • WZ #${r.warzone}]`),
       datasets: [{
         label: 'Hero Power (Millions)',
         data: top15.map(r => +(r.power / 1e6).toFixed(2)),
-        backgroundColor: top15.map(r => getSheetStyle(r.sheet).bg),
+        backgroundColor: top15.map(r => getWarzoneStyle(r.warzone).bg),
         borderRadius: 5
       }]
     },
@@ -571,7 +601,7 @@ function renderScopeCharts() {
           callbacks: {
             label: ctx => {
               const r = top15[ctx.dataIndex];
-              return ` ${formatNumber(r.power)} Power (Sheet #${r.sheet} Rank #${r.sheetRank})`;
+              return ` ${formatNumber(r.power)} Power (Warzone #${r.warzone} Rank #${r.wzRank})`;
             }
           }
         }
@@ -583,14 +613,14 @@ function renderScopeCharts() {
 function renderAllianceTable() {
   const tbody = document.getElementById('allianceTableBody');
   document.getElementById('allianceMatrixSubtitle').textContent =
-    activeSheet === 'ALL' ? `(Showing ${allianceStats.length} alliances across all 8 sheets)` : `(Showing ${allianceStats.length} alliances in Sheet #${activeSheet})`;
+    activeWarzone === 'ALL' ? `(Showing ${allianceStats.length} alliances across all 8 Warzones)` : `(Showing ${allianceStats.length} alliances in Warzone #${activeWarzone})`;
 
   tbody.innerHTML = allianceStats.map(s => {
     const style = getAllianceStyle(s.alliance);
     const isSelected = activeAlliance === s.alliance;
-    const sheetsBadges = s.sheetsList.map(sh => {
-      const shStyle = getSheetStyle(sh);
-      return `<span class="px-2 py-0.5 rounded text-[11px] font-mono border ${shStyle.badge}">#${sh}</span>`;
+    const wzBadges = s.warzonesList.map(wz => {
+      const wzStyle = getWarzoneStyle(wz);
+      return `<span class="px-2 py-0.5 rounded text-[11px] font-mono border ${wzStyle.badge}">Warzone #${wz}</span>`;
     }).join(' ');
 
     return `
@@ -603,7 +633,7 @@ function renderAllianceTable() {
             ${escapeHtml(s.alliance)}
           </span>
         </td>
-        <td class="py-3 px-4">${sheetsBadges}</td>
+        <td class="py-3 px-4">${wzBadges}</td>
         <td class="py-3 px-4 text-right font-mono text-slate-200">${s.members}</td>
         <td class="py-3 px-4 text-right">
           <div class="inline-flex items-center gap-2">
@@ -617,7 +647,7 @@ function renderAllianceTable() {
         <td class="py-3 px-4 text-right font-mono text-slate-300">${formatNumber(s.avgPower)}</td>
         <td class="py-3 px-4 text-right text-xs text-slate-300">
           <span class="font-semibold text-white">${escapeHtml(s.topCommander)}</span>
-          <span class="font-mono text-slate-400 ml-1">(#${s.topSheet} R${s.topSheetRank} • ${formatCompact(s.topPower)})</span>
+          <span class="font-mono text-slate-400 ml-1">(WZ #${s.topWarzone} R${s.topWzRank} • ${formatCompact(s.topPower)})</span>
         </td>
       </tr>
     `;
@@ -679,9 +709,9 @@ function applyFilters() {
     if (query) {
       const matchName = r.commander.toLowerCase().includes(query);
       const matchAlliance = r.alliance.toLowerCase().includes(query);
-      const matchSheet = `#${r.sheet}` === query || r.sheet === query;
-      const matchRank = String(r.sheetRank) === query.replace('#', '');
-      if (!matchName && !matchAlliance && !matchSheet && !matchRank) return false;
+      const matchWz = `warzone #${r.warzone}` === query || `#${r.warzone}` === query || r.warzone === query;
+      const matchRank = String(r.wzRank) === query.replace('#', '');
+      if (!matchName && !matchAlliance && !matchWz && !matchRank) return false;
     }
     const powerM = r.power / 1e6;
     if (tier === '400' && powerM < 400) return false;
@@ -695,7 +725,7 @@ function applyFilters() {
   filteredRows.sort((a, b) => {
     if (sort === 'power_desc') return b.power - a.power;
     if (sort === 'power_asc') return a.power - b.power;
-    if (sort === 'sheet_rank_asc') return a.sheetRank - b.sheetRank || b.power - a.power;
+    if (sort === 'wz_rank_asc') return a.wzRank - b.wzRank || b.power - a.power;
     if (sort === 'name_asc') return a.commander.localeCompare(b.commander);
     if (sort === 'alliance_asc') return a.alliance.localeCompare(b.alliance) || b.power - a.power;
     return b.power - a.power;
@@ -719,20 +749,19 @@ function renderLeaderboardTable() {
   }
 
   const maxPower = globalAllRows[0]?.power || 1;
-  // Render up to 400 rows for smooth DOM performance, or all if filtered
   const displayRows = filteredRows.slice(0, 500);
 
   tbody.innerHTML = displayRows.map(r => {
-    const shStyle = getSheetStyle(r.sheet);
+    const wzStyle = getWarzoneStyle(r.warzone);
     const alStyle = getAllianceStyle(r.alliance);
     const pct = ((r.power / maxPower) * 100).toFixed(1);
-    const shStat = sheetStatsByName[r.sheet];
-    const diffAvg = shStat ? r.power - shStat.avgPower : 0;
+    const wzStat = warzoneStatsByName[r.warzone];
+    const diffAvg = wzStat ? r.power - wzStat.avgPower : 0;
     const diffSign = diffAvg >= 0 ? '+' : '';
     const diffClass = diffAvg >= 0 ? 'text-emerald-400' : 'text-slate-400';
 
     let rankBadge = `<span class="font-mono font-semibold text-slate-400">#${r.globalRank}</span>`;
-    if (r.globalRank === 1) rankBadge = `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-xs border border-amber-500/40">👑 #1</span>`;
+    if (r.globalRank === 1) rankBadge = `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-xs border border-amber-500/40">🥇 #1</span>`;
     else if (r.globalRank === 2) rankBadge = `<span class="px-2 py-0.5 rounded bg-slate-300/20 text-slate-200 font-mono font-bold text-xs border border-slate-300/40">🥈 #2</span>`;
     else if (r.globalRank === 3) rankBadge = `<span class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 font-mono font-bold text-xs border border-orange-500/40">🥉 #3</span>`;
 
@@ -740,8 +769,8 @@ function renderLeaderboardTable() {
       <tr class="hover:bg-white/[0.04] transition">
         <td class="py-3 px-4">${rankBadge}</td>
         <td class="py-3 px-4">
-          <button onclick="selectSheet('${escapeHtml(r.sheet)}')" class="px-2 py-0.5 rounded text-xs font-mono font-bold border ${shStyle.badge} cursor-pointer">
-            #${escapeHtml(r.sheet)} <span class="opacity-75">R${r.sheetRank}</span>
+          <button onclick="selectWarzone('${escapeHtml(r.warzone)}')" class="px-2 py-0.5 rounded text-xs font-mono font-bold border ${wzStyle.badge} cursor-pointer">
+            Warzone #${escapeHtml(r.warzone)} <span class="opacity-75">R${r.wzRank}</span>
           </button>
         </td>
         <td class="py-3 px-4 font-semibold text-white">${escapeHtml(r.commander)}</td>
@@ -754,7 +783,7 @@ function renderLeaderboardTable() {
         <td class="py-3 px-4 hidden md:table-cell">
           <div class="flex items-center gap-2">
             <div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div class="h-full rounded-full" style="width: ${pct}%; background: ${shStyle.border}"></div>
+              <div class="h-full rounded-full" style="width: ${pct}%; background: ${wzStyle.border}"></div>
             </div>
             <span class="font-mono text-xs text-slate-400 w-11 text-right">${pct}%</span>
           </div>
@@ -769,18 +798,18 @@ function renderLeaderboardTable() {
 
 function exportFilteredCSV() {
   if (!filteredRows.length) return;
-  const header = ['Global Rank', 'Sheet', 'Sheet Rank', 'Alliance', 'Commander Name', 'Total Hero Power'];
+  const header = ['Global Rank', 'Warzone', 'Warzone Rank', 'Alliance', 'Commander Name', 'Total Hero Power'];
   const csvRows = [
     header.join(','),
     ...filteredRows.map(r =>
-      `${r.globalRank},"${r.sheet}",${r.sheetRank},"${r.alliance.replace(/"/g, '""')}","${r.commander.replace(/"/g, '""')}","${formatNumber(r.power)}"`
+      `${r.globalRank},"Warzone #${r.warzone}",${r.wzRank},"${r.alliance.replace(/"/g, '""')}","${r.commander.replace(/"/g, '""')}","${formatNumber(r.power)}"`
     )
   ];
   const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `hero-power-sheet-${activeSheet.toLowerCase()}-${activeAlliance.toLowerCase()}.csv`;
+  a.download = `hero-power-warzone-${activeWarzone.toLowerCase()}-${activeAlliance.toLowerCase()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -792,16 +821,16 @@ async function loadDashboard(force = false) {
   try {
     const res = await fetch(`/api/data${force ? '?refresh=1' : ''}`);
     const data = await res.json();
-    sheetsMeta = data.sheetsMeta || [];
-    sheetsDataMap = data.sheets || {};
+    warzonesMeta = data.sheetsMeta || [];
+    warzonesDataMap = data.sheets || {};
 
-    computeAllSheetsSummary();
+    computeAllWarzonesSummary();
     computeScopeData();
 
-    renderSheetTabsBar();
+    renderWarzoneTabsBar();
     renderKPIs();
-    renderSheetsSummaryTable();
-    renderCrossSheetCharts();
+    renderWarzonesSummaryTable();
+    renderCrossWarzoneCharts();
     renderPodium();
     renderAllianceTable();
     renderFilterControls();
@@ -812,7 +841,7 @@ async function loadDashboard(force = false) {
     document.getElementById('lastUpdatedText').textContent =
       `Updated ${updatedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
     document.getElementById('sourceLabel').textContent =
-      data.source === 'live_google_sheets' ? 'Live 8-Sheet Sync' : '8 Sheets Synced';
+      data.source === 'live_google_sheets' ? 'Live 8-Warzone Sync' : '8 Warzones Synced';
   } catch (err) {
     console.error('Failed to load dashboard data:', err);
   } finally {
