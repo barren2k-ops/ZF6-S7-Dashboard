@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Total Hero Power Leaderboard — Live Alliance Analytics</title>
+  <title>Total Hero Power Leaderboard — Multi-Server 8-Sheet Analytics</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,15 +43,15 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .podium-1 {
-      background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(19, 28, 46, 0.85) 100%);
-      border: 1px solid rgba(250, 204, 21, 0.4);
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.16) 0%, rgba(19, 28, 46, 0.88) 100%);
+      border: 1px solid rgba(250, 204, 21, 0.42);
     }
     .podium-2 {
-      background: linear-gradient(135deg, rgba(203, 213, 225, 0.14) 0%, rgba(19, 28, 46, 0.85) 100%);
+      background: linear-gradient(135deg, rgba(203, 213, 225, 0.15) 0%, rgba(19, 28, 46, 0.88) 100%);
       border: 1px solid rgba(203, 213, 225, 0.35);
     }
     .podium-3 {
-      background: linear-gradient(135deg, rgba(249, 115, 22, 0.14) 0%, rgba(19, 28, 46, 0.85) 100%);
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(19, 28, 46, 0.88) 100%);
       border: 1px solid rgba(249, 115, 22, 0.35);
     }
     ::-webkit-scrollbar {
@@ -74,57 +74,75 @@
 
   <!-- Top Navbar -->
   <header class="sticky top-0 z-30 glass-card border-b border-white/10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <div>
-          <div class="flex items-center gap-2.5">
-            <h1 class="text-xl font-extrabold tracking-tight text-white">Total Hero Power Dashboard</h1>
-            <span id="liveBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="sourceLabel">Live Sheet Sync</span>
-            </span>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">
-            Top 200 Commanders &bull; Real-time Google Sheets Analytics &bull; <span id="lastUpdatedText">Syncing...</span>
-          </p>
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h1 class="text-xl font-extrabold tracking-tight text-white">Total Hero Power Command Center</h1>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="sourceLabel">8 Sheets Synced</span>
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+              8 Sheets (#67, #147, #90, #47, #93, #85, #162, #5) &bull; 1,600 Ranked Commanders &bull; <span id="lastUpdatedText">Syncing...</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="loadDashboard(true)" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
+            <svg id="refreshIcon" class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Sync All 8 Sheets
+          </button>
+          <button onclick="exportFilteredCSV()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export View CSV
+          </button>
+          <a href="https://docs.google.com/spreadsheets/d/1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA/edit?usp=sharing" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow-lg shadow-sky-500/20">
+            Open Google Sheet
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
         </div>
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <button id="refreshBtn" onclick="loadDashboard(true)" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
-          <svg id="refreshIcon" class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh Data
-        </button>
-        <button onclick="exportFilteredCSV()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
-          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Export CSV
-        </button>
-        <a href="https://docs.google.com/spreadsheets/d/1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA/edit?usp=sharing" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow-lg shadow-sky-500/20">
-          Open Sheet
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
+      <!-- 8-Sheet Selector Tabs Bar -->
+      <div id="sheetTabsBar" class="flex items-center gap-2 overflow-x-auto pb-1 pt-2 border-t border-white/10">
+        <!-- Populated dynamically with All 8 Sheets + Individual Sheet Tabs -->
       </div>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
+    <!-- Active View Banner -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-slate-900/70 border border-white/10 rounded-xl px-4 py-3">
+      <div class="flex items-center gap-2.5">
+        <span id="activeScopeBadge" class="px-2.5 py-1 rounded-md text-xs font-extrabold bg-sky-500 text-slate-950 uppercase tracking-wider">ALL 8 SHEETS</span>
+        <span id="activeScopeDescription" class="text-xs sm:text-sm text-slate-300 font-medium">
+          Viewing combined analytics across all 8 sheets (1,600 commanders)
+        </span>
+      </div>
+      <span class="text-xs text-slate-400">Tip: Click any Sheet tab above or row in the Sheet Comparison table to drill into a specific sheet</span>
+    </div>
+
     <!-- KPI Summary Cards -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Combined Hero Power</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Hero Power</span>
           <span class="p-2 rounded-lg bg-sky-500/10 text-sky-400">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -132,7 +150,7 @@
           </span>
         </div>
         <div id="kpiTotalPower" class="text-2xl sm:text-3xl font-extrabold font-mono text-white mt-3">--</div>
-        <div id="kpiTotalPowerSub" class="text-xs text-slate-400 mt-1">Across all 200 ranked commanders</div>
+        <div id="kpiTotalPowerSub" class="text-xs text-slate-400 mt-1">--</div>
       </div>
 
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
@@ -150,20 +168,20 @@
 
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dominant Alliance</span>
+          <span id="kpiThirdTitle" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Strongest Sheet / Alliance</span>
           <span class="p-2 rounded-lg bg-purple-500/10 text-purple-400">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </span>
         </div>
-        <div id="kpiTopAlliance" class="text-2xl sm:text-3xl font-extrabold text-purple-400 mt-3">--</div>
+        <div id="kpiTopAlliance" class="text-2xl sm:text-3xl font-extrabold text-purple-400 mt-3 truncate">--</div>
         <div id="kpiTopAllianceSub" class="text-xs text-slate-400 mt-1">--</div>
       </div>
 
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Average / Cutoff Power</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Average / Floor Cutoff</span>
           <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -171,80 +189,103 @@
           </span>
         </div>
         <div id="kpiAvgPower" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400 mt-3">--</div>
-        <div id="kpiMinPowerSub" class="text-xs font-mono text-slate-400 mt-1">Rank #200 Floor: --</div>
+        <div id="kpiMinPowerSub" class="text-xs font-mono text-slate-400 mt-1">--</div>
       </div>
     </section>
 
-    <!-- Top 3 Podium Cards -->
+    <!-- 8-Sheet Head-to-Head Comparison Section (Always visible for quick cross-sheet insights) -->
+    <section class="glass-card rounded-2xl p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            All 8 Sheets Head-to-Head Comparison
+            <span class="px-2 py-0.5 text-[11px] font-mono rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">8 Servers</span>
+          </h2>
+          <p class="text-xs text-slate-400">Comparing total Top-200 power, rank curves, #1 apex commanders, and Rank #200 cutoffs across every sheet</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        <!-- Total & Average Power by Sheet Bar Chart -->
+        <div class="lg:col-span-6 bg-slate-900/50 rounded-xl p-4 border border-white/5">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Total Power &amp; #1 Peak by Sheet</h3>
+            <span class="text-[11px] text-slate-400">Click bar to select sheet</span>
+          </div>
+          <div class="relative h-64">
+            <canvas id="sheetsComparisonChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Multi-Line Rank 1-200 Power Curves Across All 8 Sheets -->
+        <div class="lg:col-span-6 bg-slate-900/50 rounded-xl p-4 border border-white/5">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Rank #1 &rarr; #200 Power Curves (All 8 Sheets)</h3>
+            <span class="text-[11px] text-slate-400">Server Depth Comparison</span>
+          </div>
+          <div class="relative h-64">
+            <canvas id="multiSheetCurveChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8-Sheet Summary Matrix Table -->
+      <div class="overflow-x-auto rounded-xl border border-white/10">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-900/90 border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <th class="py-3 px-4">Sheet / Server</th>
+              <th class="py-3 px-4 text-right">Total Top 200 Power</th>
+              <th class="py-3 px-4 text-right">Average Power</th>
+              <th class="py-3 px-4 text-right">Rank #200 Cutoff</th>
+              <th class="py-3 px-4">#1 Commander</th>
+              <th class="py-3 px-4 text-right">#1 Hero Power</th>
+              <th class="py-3 px-4">Dominant Alliance</th>
+            </tr>
+          </thead>
+          <tbody id="sheetsSummaryTableBody" class="divide-y divide-white/5 text-sm">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Top 3 Podium Cards (Context-aware: Global Top 3 or Active Sheet Top 3) -->
     <section>
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">Leaderboard Podium (Top 3 Commanders)</h2>
-        <span class="text-xs text-slate-400">Click any alliance badge below to filter</span>
+        <h2 id="podiumSectionTitle" class="text-sm font-bold uppercase tracking-wider text-slate-400">Leaderboard Podium (Top 3 Commanders)</h2>
+        <span class="text-xs text-slate-400">Click any alliance or sheet badge to filter</span>
       </div>
       <div id="podiumContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Populated dynamically -->
       </div>
     </section>
 
-    <!-- Charts Grid Row 1 -->
+    <!-- Active View Charts Row -->
     <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Alliance Total Power Share -->
+      <!-- Alliance Power Share -->
       <div class="glass-card rounded-2xl p-6 lg:col-span-5 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between mb-1">
             <h3 class="text-base font-bold text-white">Alliance Power Share</h3>
-            <span class="text-xs text-slate-400">Total Hero Power by Alliance</span>
+            <span id="allianceChartScopeLabel" class="text-xs text-sky-400 font-semibold">All 8 Sheets</span>
           </div>
-          <p class="text-xs text-slate-400 mb-4">M8F, SOB, and SMd control over 92% of total leaderboard power</p>
+          <p class="text-xs text-slate-400 mb-4">Top alliances ranked by combined Hero Power (click slice to filter)</p>
         </div>
-        <div class="relative h-64 flex items-center justify-center">
+        <div class="relative h-72 flex items-center justify-center">
           <canvas id="allianceShareChart"></canvas>
         </div>
       </div>
 
-      <!-- Alliance Member Count & Average Power -->
-      <div class="glass-card rounded-2xl p-6 lg:col-span-7 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <h3 class="text-base font-bold text-white">Alliance Strength &amp; Average Commander Power</h3>
-            <span class="text-xs text-slate-400">Members vs. Mean Power (Millions)</span>
-          </div>
-          <p class="text-xs text-slate-400 mb-4">Comparing roster depth in the Top 200 against average commander strength</p>
-        </div>
-        <div class="relative h-64">
-          <canvas id="allianceComparisonChart"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- Charts Grid Row 2 -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Top 20 Commanders Horizontal Bar -->
+      <!-- Top 15 Commanders in Current Scope -->
       <div class="glass-card rounded-2xl p-6 lg:col-span-7">
         <div class="flex items-center justify-between mb-1">
-          <h3 class="text-base font-bold text-white">Top 15 Commanders</h3>
-          <span class="text-xs text-slate-400">Color-coded by Alliance</span>
+          <h3 id="top15ChartTitle" class="text-base font-bold text-white">Top 15 Commanders</h3>
+          <span class="text-xs text-slate-400">Color-coded by Sheet / Alliance</span>
         </div>
-        <p class="text-xs text-slate-400 mb-4">Crop Duster &amp; Roscoe Jerie lead the server above 400M Hero Power</p>
-        <div class="relative h-80">
+        <p class="text-xs text-slate-400 mb-4">Highest Total Hero Power commanders in the selected view</p>
+        <div class="relative h-72">
           <canvas id="topCommandersChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Power Decay Curve + Tier Histogram -->
-      <div class="glass-card rounded-2xl p-6 lg:col-span-5 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <h3 class="text-base font-bold text-white">Rank #1 to #200 Power Curve</h3>
-            <div class="flex gap-1">
-              <button id="btnViewCurve" onclick="switchDistView('curve')" class="px-2.5 py-1 rounded text-xs font-semibold bg-sky-500 text-slate-950 cursor-pointer">Rank Curve</button>
-              <button id="btnViewTiers" onclick="switchDistView('tiers')" class="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Power Tiers</button>
-            </div>
-          </div>
-          <p id="distChartSubtitle" class="text-xs text-slate-400 mb-4">Distribution of Hero Power across all 200 ranks</p>
-        </div>
-        <div class="relative h-80">
-          <canvas id="powerDistributionChart"></canvas>
         </div>
       </div>
     </section>
@@ -253,23 +294,23 @@
     <section class="glass-card rounded-2xl p-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <div>
-          <h3 class="text-base font-bold text-white">Alliance Intelligence Matrix</h3>
-          <p class="text-xs text-slate-400">Click an alliance row to filter the Commander Leaderboard below</p>
+          <h3 class="text-base font-bold text-white">Alliance Intelligence Matrix <span id="allianceMatrixSubtitle" class="text-xs font-normal text-slate-400 ml-1"></span></h3>
+          <p class="text-xs text-slate-400">Click any alliance row to filter the Commander Leaderboard below</p>
         </div>
         <button onclick="setAllianceFilter('ALL')" id="clearAllianceFilterBtn" class="hidden self-start sm:self-auto text-xs font-semibold text-sky-400 hover:text-sky-300 cursor-pointer">
           Reset Alliance Filter &times;
         </button>
       </div>
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto max-h-96">
         <table class="w-full text-left border-collapse">
-          <thead>
+          <thead class="sticky top-0 bg-slate-900/95 backdrop-blur">
             <tr class="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               <th class="py-3 px-4">Alliance</th>
+              <th class="py-3 px-4">Sheet(s)</th>
               <th class="py-3 px-4 text-right">Ranked Members</th>
               <th class="py-3 px-4 text-right">Power Share</th>
               <th class="py-3 px-4 text-right">Total Hero Power</th>
               <th class="py-3 px-4 text-right">Average Power</th>
-              <th class="py-3 px-4 text-right">Median Power</th>
               <th class="py-3 px-4 text-right">Strongest Commander</th>
             </tr>
           </thead>
@@ -280,28 +321,28 @@
       </div>
     </section>
 
-    <!-- Interactive Commander Leaderboard Table -->
+    <!-- Interactive Commander Leaderboard Explorer -->
     <section id="leaderboardSection" class="glass-card rounded-2xl p-6">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
           <h3 class="text-lg font-bold text-white flex items-center gap-2">
             Commander Leaderboard Explorer
-            <span id="filteredCountBadge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">200</span>
+            <span id="filteredCountBadge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">--</span>
           </h3>
-          <p class="text-xs text-slate-400">Search by commander name, filter by alliance or minimum power, and sort any column</p>
+          <p class="text-xs text-slate-400">Search across all 1,600 commanders or filter by specific Sheet, Alliance, or Power Tier</p>
         </div>
 
         <!-- Filters -->
         <div class="flex flex-wrap items-center gap-3">
           <!-- Search input -->
-          <div class="relative flex-1 sm:flex-initial sm:w-64">
+          <div class="relative flex-1 sm:flex-initial sm:w-60">
             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               id="searchInput"
               type="text"
-              placeholder="Search commander or rank..."
+              placeholder="Search commander, alliance..."
               oninput="applyFilters()"
               class="w-full pl-9 pr-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
@@ -323,11 +364,11 @@
             class="px-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
           >
             <option value="ALL">All Power Tiers</option>
+            <option value="400">400M+ (Mythic Whales)</option>
             <option value="300">300M+ (Apex Whales)</option>
             <option value="250">250M+ (Elite)</option>
-            <option value="220">220M+ (Vanguard)</option>
-            <option value="200">200M+ (Core)</option>
-            <option value="UNDER200">&lt; 200M (Rising)</option>
+            <option value="200">200M+ (Vanguard)</option>
+            <option value="UNDER200">&lt; 200M (Core)</option>
           </select>
 
           <!-- Sort Order -->
@@ -336,8 +377,9 @@
             onchange="applyFilters()"
             class="px-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
           >
-            <option value="rank_asc">Rank: #1 &rarr; #200</option>
-            <option value="rank_desc">Rank: #200 &rarr; #1</option>
+            <option value="power_desc">Power: High &rarr; Low</option>
+            <option value="power_asc">Power: Low &rarr; High</option>
+            <option value="sheet_rank_asc">Sheet Rank: #1 &rarr; #200</option>
             <option value="name_asc">Commander: A &rarr; Z</option>
             <option value="alliance_asc">Alliance: A &rarr; Z</option>
           </select>
@@ -348,16 +390,17 @@
       <div id="alliancePills" class="flex flex-wrap gap-1.5 mb-4"></div>
 
       <!-- Leaderboard Table -->
-      <div class="overflow-x-auto rounded-xl border border-white/10">
+      <div class="overflow-x-auto rounded-xl border border-white/10 max-h-[680px]">
         <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-900/90 border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              <th class="py-3.5 px-4 w-20">Rank</th>
+          <thead class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
+            <tr class="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <th class="py-3.5 px-4 w-24">Global #</th>
+              <th class="py-3.5 px-4 w-28">Sheet (#Rank)</th>
               <th class="py-3.5 px-4">Commander Name</th>
               <th class="py-3.5 px-4">Alliance</th>
               <th class="py-3.5 px-4 text-right">Total Hero Power</th>
-              <th class="py-3.5 px-4 w-48 hidden md:table-cell">Relative Power vs #1</th>
-              <th class="py-3.5 px-4 text-right hidden sm:table-cell">Diff vs Alliance Avg</th>
+              <th class="py-3.5 px-4 w-48 hidden md:table-cell">Relative Power</th>
+              <th class="py-3.5 px-4 text-right hidden sm:table-cell">vs. Sheet Avg</th>
             </tr>
           </thead>
           <tbody id="leaderboardTableBody" class="divide-y divide-white/5 text-sm">
@@ -369,7 +412,7 @@
   </main>
 
   <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-xs text-slate-500 border-t border-white/5 mt-8">
-    Connected to Google Spreadsheet ID <code class="text-slate-400">1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA</code> &bull; Ready for Render Cloud Hosting
+    Connected to all 8 tabs in Google Spreadsheet <code class="text-slate-400">1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA</code> &bull; Ready for Render Cloud Hosting
   </footer>
 
   <script src="/app.js"></script>
