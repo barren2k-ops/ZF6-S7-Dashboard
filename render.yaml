@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hero-power-dashboard
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SHEET_ID
+        value: 1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA

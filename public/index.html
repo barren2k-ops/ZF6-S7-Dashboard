@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Total Hero Power Leaderboard — Live Alliance Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#131c2e',
+              950: '#090d16'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #090d16;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+    .glass-card {
+      background: rgba(19, 28, 46, 0.72);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .podium-1 {
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(19, 28, 46, 0.85) 100%);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+    }
+    .podium-2 {
+      background: linear-gradient(135deg, rgba(203, 213, 225, 0.14) 0%, rgba(19, 28, 46, 0.85) 100%);
+      border: 1px solid rgba(203, 213, 225, 0.35);
+    }
+    .podium-3 {
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.14) 0%, rgba(19, 28, 46, 0.85) 100%);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- Top Navbar -->
+  <header class="sticky top-0 z-30 glass-card border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-xl font-extrabold tracking-tight text-white">Total Hero Power Dashboard</h1>
+            <span id="liveBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="sourceLabel">Live Sheet Sync</span>
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Top 200 Commanders &bull; Real-time Google Sheets Analytics &bull; <span id="lastUpdatedText">Syncing...</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button id="refreshBtn" onclick="loadDashboard(true)" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
+          <svg id="refreshIcon" class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh Data
+        </button>
+        <button onclick="exportFilteredCSV()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 transition cursor-pointer">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Export CSV
+        </button>
+        <a href="https://docs.google.com/spreadsheets/d/1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA/edit?usp=sharing" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow-lg shadow-sky-500/20">
+          Open Sheet
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Summary Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Combined Hero Power</span>
+          <span class="p-2 rounded-lg bg-sky-500/10 text-sky-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </span>
+        </div>
+        <div id="kpiTotalPower" class="text-2xl sm:text-3xl font-extrabold font-mono text-white mt-3">--</div>
+        <div id="kpiTotalPowerSub" class="text-xs text-slate-400 mt-1">Across all 200 ranked commanders</div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">#1 Top Commander</span>
+          <span class="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+          </span>
+        </div>
+        <div id="kpiTopCommander" class="text-2xl sm:text-3xl font-extrabold text-amber-400 mt-3 truncate">--</div>
+        <div id="kpiTopCommanderSub" class="text-xs font-mono text-slate-300 mt-1">--</div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dominant Alliance</span>
+          <span class="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </span>
+        </div>
+        <div id="kpiTopAlliance" class="text-2xl sm:text-3xl font-extrabold text-purple-400 mt-3">--</div>
+        <div id="kpiTopAllianceSub" class="text-xs text-slate-400 mt-1">--</div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Average / Cutoff Power</span>
+          <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </span>
+        </div>
+        <div id="kpiAvgPower" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400 mt-3">--</div>
+        <div id="kpiMinPowerSub" class="text-xs font-mono text-slate-400 mt-1">Rank #200 Floor: --</div>
+      </div>
+    </section>
+
+    <!-- Top 3 Podium Cards -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">Leaderboard Podium (Top 3 Commanders)</h2>
+        <span class="text-xs text-slate-400">Click any alliance badge below to filter</span>
+      </div>
+      <div id="podiumContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Populated dynamically -->
+      </div>
+    </section>
+
+    <!-- Charts Grid Row 1 -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Alliance Total Power Share -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-base font-bold text-white">Alliance Power Share</h3>
+            <span class="text-xs text-slate-400">Total Hero Power by Alliance</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">M8F, SOB, and SMd control over 92% of total leaderboard power</p>
+        </div>
+        <div class="relative h-64 flex items-center justify-center">
+          <canvas id="allianceShareChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Alliance Member Count & Average Power -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-7 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-base font-bold text-white">Alliance Strength &amp; Average Commander Power</h3>
+            <span class="text-xs text-slate-400">Members vs. Mean Power (Millions)</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">Comparing roster depth in the Top 200 against average commander strength</p>
+        </div>
+        <div class="relative h-64">
+          <canvas id="allianceComparisonChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Charts Grid Row 2 -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Top 20 Commanders Horizontal Bar -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-7">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="text-base font-bold text-white">Top 15 Commanders</h3>
+          <span class="text-xs text-slate-400">Color-coded by Alliance</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Crop Duster &amp; Roscoe Jerie lead the server above 400M Hero Power</p>
+        <div class="relative h-80">
+          <canvas id="topCommandersChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Power Decay Curve + Tier Histogram -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-base font-bold text-white">Rank #1 to #200 Power Curve</h3>
+            <div class="flex gap-1">
+              <button id="btnViewCurve" onclick="switchDistView('curve')" class="px-2.5 py-1 rounded text-xs font-semibold bg-sky-500 text-slate-950 cursor-pointer">Rank Curve</button>
+              <button id="btnViewTiers" onclick="switchDistView('tiers')" class="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">Power Tiers</button>
+            </div>
+          </div>
+          <p id="distChartSubtitle" class="text-xs text-slate-400 mb-4">Distribution of Hero Power across all 200 ranks</p>
+        </div>
+        <div class="relative h-80">
+          <canvas id="powerDistributionChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alliance Breakdown Summary Table -->
+    <section class="glass-card rounded-2xl p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+        <div>
+          <h3 class="text-base font-bold text-white">Alliance Intelligence Matrix</h3>
+          <p class="text-xs text-slate-400">Click an alliance row to filter the Commander Leaderboard below</p>
+        </div>
+        <button onclick="setAllianceFilter('ALL')" id="clearAllianceFilterBtn" class="hidden self-start sm:self-auto text-xs font-semibold text-sky-400 hover:text-sky-300 cursor-pointer">
+          Reset Alliance Filter &times;
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <th class="py-3 px-4">Alliance</th>
+              <th class="py-3 px-4 text-right">Ranked Members</th>
+              <th class="py-3 px-4 text-right">Power Share</th>
+              <th class="py-3 px-4 text-right">Total Hero Power</th>
+              <th class="py-3 px-4 text-right">Average Power</th>
+              <th class="py-3 px-4 text-right">Median Power</th>
+              <th class="py-3 px-4 text-right">Strongest Commander</th>
+            </tr>
+          </thead>
+          <tbody id="allianceTableBody" class="divide-y divide-white/5 text-sm">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Interactive Commander Leaderboard Table -->
+    <section id="leaderboardSection" class="glass-card rounded-2xl p-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            Commander Leaderboard Explorer
+            <span id="filteredCountBadge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">200</span>
+          </h3>
+          <p class="text-xs text-slate-400">Search by commander name, filter by alliance or minimum power, and sort any column</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Search input -->
+          <div class="relative flex-1 sm:flex-initial sm:w-64">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Search commander or rank..."
+              oninput="applyFilters()"
+              class="w-full pl-9 pr-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <!-- Alliance Filter Select -->
+          <select
+            id="allianceSelect"
+            onchange="setAllianceFilter(this.value)"
+            class="px-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+          >
+            <option value="ALL">All Alliances</option>
+          </select>
+
+          <!-- Power Tier Filter -->
+          <select
+            id="tierSelect"
+            onchange="applyFilters()"
+            class="px-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+          >
+            <option value="ALL">All Power Tiers</option>
+            <option value="300">300M+ (Apex Whales)</option>
+            <option value="250">250M+ (Elite)</option>
+            <option value="220">220M+ (Vanguard)</option>
+            <option value="200">200M+ (Core)</option>
+            <option value="UNDER200">&lt; 200M (Rising)</option>
+          </select>
+
+          <!-- Sort Order -->
+          <select
+            id="sortSelect"
+            onchange="applyFilters()"
+            class="px-3 py-2 bg-slate-900/90 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+          >
+            <option value="rank_asc">Rank: #1 &rarr; #200</option>
+            <option value="rank_desc">Rank: #200 &rarr; #1</option>
+            <option value="name_asc">Commander: A &rarr; Z</option>
+            <option value="alliance_asc">Alliance: A &rarr; Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Alliance Filter Pills -->
+      <div id="alliancePills" class="flex flex-wrap gap-1.5 mb-4"></div>
+
+      <!-- Leaderboard Table -->
+      <div class="overflow-x-auto rounded-xl border border-white/10">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-900/90 border-b border-white/10 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <th class="py-3.5 px-4 w-20">Rank</th>
+              <th class="py-3.5 px-4">Commander Name</th>
+              <th class="py-3.5 px-4">Alliance</th>
+              <th class="py-3.5 px-4 text-right">Total Hero Power</th>
+              <th class="py-3.5 px-4 w-48 hidden md:table-cell">Relative Power vs #1</th>
+              <th class="py-3.5 px-4 text-right hidden sm:table-cell">Diff vs Alliance Avg</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardTableBody" class="divide-y divide-white/5 text-sm">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-xs text-slate-500 border-t border-white/5 mt-8">
+    Connected to Google Spreadsheet ID <code class="text-slate-400">1mau9UHauEc8T02kXYvkY34s9fMEakZEsiJj_ox8GmxA</code> &bull; Ready for Render Cloud Hosting
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

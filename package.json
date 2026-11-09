@@ -1,0 +1,14 @@
+{
+  "name": "hero-power-dashboard",
+  "version": "1.0.0",
+  "description": "Interactive Total Hero Power Leaderboard & Alliance Analytics Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
