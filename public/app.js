@@ -49,6 +49,7 @@ let activeAlliance = 'ALL';
 
 let wzCompChartInstance = null;
 let multiCurveChartInstance = null;
+let wz162Vs5ChartInstance = null;
 let shareChartInstance = null;
 let topCommandersChartInstance = null;
 
@@ -463,6 +464,91 @@ function renderCrossWarzoneCharts() {
         legend: {
           position: 'top',
           labels: { boxWidth: 10, padding: 8, font: { size: 10 } }
+        }
+      }
+    }
+  });
+
+  // 3. Full-width 1.5x Taller Chart: Warzone #162 vs Warzone #5 (All 200 Ranks)
+  const h2hCtx = document.getElementById('wz162Vs5CurveChart').getContext('2d');
+  if (wz162Vs5ChartInstance) wz162Vs5ChartInstance.destroy();
+
+  const all200Ranks = Array.from({ length: 200 }, (_, i) => i + 1);
+  const rows162 = warzonesDataMap['162'] || [];
+  const rows5 = warzonesDataMap['5'] || [];
+
+  const style162 = getWarzoneStyle('162');
+  const style5 = getWarzoneStyle('5');
+
+  wz162Vs5ChartInstance = new Chart(h2hCtx, {
+    type: 'line',
+    data: {
+      labels: all200Ranks.map(r => `#${r}`),
+      datasets: [
+        {
+          label: 'Warzone #162',
+          data: all200Ranks.map(rk => (rows162[rk - 1] ? +(rows162[rk - 1].power / 1e6).toFixed(2) : null)),
+          borderColor: style162.border,
+          backgroundColor: 'rgba(99, 102, 241, 0.12)',
+          fill: true,
+          borderWidth: 2.5,
+          pointRadius: all200Ranks.map(rk => (rk <= 10 || rk % 25 === 0 ? 3 : 0)),
+          pointHoverRadius: 5,
+          tension: 0.2
+        },
+        {
+          label: 'Warzone #5',
+          data: all200Ranks.map(rk => (rows5[rk - 1] ? +(rows5[rk - 1].power / 1e6).toFixed(2) : null)),
+          borderColor: style5.border,
+          backgroundColor: 'rgba(250, 204, 21, 0.08)',
+          fill: true,
+          borderWidth: 2.5,
+          pointRadius: all200Ranks.map(rk => (rk <= 10 || rk % 25 === 0 ? 3 : 0)),
+          pointHoverRadius: 5,
+          tension: 0.2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          ticks: { maxTicksLimit: 20 }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: { display: true, text: 'Total Hero Power (Millions)', font: { size: 11 } },
+          ticks: { callback: v => v + 'M' }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { boxWidth: 12, padding: 14, font: { size: 12, weight: 'bold' } }
+        },
+        tooltip: {
+          callbacks: {
+            title: items => `Rank ${items[0].label}`,
+            label: ctx => {
+              const rk = ctx.dataIndex;
+              const is162 = ctx.datasetIndex === 0;
+              const row = is162 ? rows162[rk] : rows5[rk];
+              if (!row) return '';
+              return ` Warzone #${row.sheet}: ${formatNumber(row.power)} — ${row.commander} [${row.alliance}]`;
+            },
+            afterBody: items => {
+              if (items.length < 2) return '';
+              const rk = items[0].dataIndex;
+              const p162 = rows162[rk]?.power || 0;
+              const p5 = rows5[rk]?.power || 0;
+              const diff = p162 - p5;
+              const leader = diff >= 0 ? 'Warzone #162' : 'Warzone #5';
+              return `\nLead at Rank #${rk + 1}: ${leader} by +${formatNumber(Math.abs(diff))} THP`;
+            }
+          }
         }
       }
     }
